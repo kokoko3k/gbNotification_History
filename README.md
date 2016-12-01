@@ -1,9 +1,9 @@
 gbNotification_History
 ======
-Monitor dbus notifications and store them forever
+Monitor dbus notifications and stores them forever
 
-Plasma 5 does not store unread notifications forever anymore.
-If you miss them, read on.
+Plasma 5 does not keep unread notifications forever anymore.
+If you miss that, read on.
 
 This tool sits in the system tray and uses dbus-monitor 
 to intercept and store notifications internally, forever.
