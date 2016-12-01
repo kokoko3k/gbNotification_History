@@ -1,0 +1,181 @@
+' Gambas class file
+
+Public Struct sMy_Notification
+  app_name As String
+  replaces_id As String
+  app_icon As String
+  summary As String
+  body As String
+  actions As String[]
+  hints As Collection[]
+  expire_timeout As Long
+  dDate As Date
+End Struct
+
+Public pDbusMonitor As Process
+Public aNotifications As SMy_Notification[]
+
+Public mytrayicon As Trayicon
+Public Function InitTrayIcon() As Boolean
+  Dim secs As Integer = 0
+  Dim SystemTray As Boolean
+  SystemTray = False
+  Try SystemTray = desktop.HasSystemTray
+  If Error Then
+    Debug "Error while checking if your desktop has a system tray, assuming it has..."
+    SystemTray = True
+  Endif
+
+  If Not SystemTray Then
+    Debug "System tray is still missing; checking again in a sec..."
+      Repeat
+        Sleep 1
+        secs += 1
+        Try mytrayicon = New Trayicon 
+      Until (Not Error ) Or secs = 10
+    Try mytrayicon = New Trayicon 
+    If Error Then 
+      Goto ErrorLabel
+      Return False
+    Endif
+      Else
+    Try mytrayicon = New Trayicon 
+    If Error Then Goto ErrorLabel
+  Endif
+  mytrayicon.Picture = Picture["notify_read.png"]
+  mytrayicon.Visible = True
+  mytrayicon.tooltip = "Notification History"
+  object.Attach(mytrayicon, Me, "mytrayicon")
+  mytrayicon.PopupMenu = "TrayMenu"
+  Return True
+  
+  ErrorLabel:
+  Debug "Sorry, No system tray."
+  Return False
+  
+End
+
+
+Public Sub mytrayicon_click()
+  Notify_all()
+End
+
+
+
+Public Sub Which(exe As String) As String
+  Dim out As String
+  Shell "which " & exe To out
+  Return Trim(out)
+End
+
+
+Public Sub init()
+  Dim dBusMonitorExe As String = ""
+  
+  If Not InitTrayIcon() Then Quit
+
+  Try dBusMonitorExe = Which("dbus-monitor")
+  If dBusMonitorExe = "" Then 
+    Debug "dbus-monitor cannot be found in $PATH"
+    Quit
+  Endif
+  pDbusMonitor = Shell "dbus-monitor --monitor \"interface='org.freedesktop.Notifications'\"" For Read As "pDbusMonitor"
+  aNotifications = New SMy_Notification[]
+End
+
+
+Public Sub pDbusMonitor_read()
+  Dim sOutput As String
+  Read #Last, sOutput, -99999999
+  If Not monitoring Then Return
+  Parse_and_store(Split(sOutput, "\n"))  
+End
+
+
+Public Sub Parse_and_store(saNotification As String[])
+  Dim t As String 
+  Dim n As SMy_Notification
+  'find the beginning of the notification
+  Repeat
+    Try t = saNotification.Extract(0, 1)[0]
+    If Error Then 
+      Debug "Dropping messages"
+      Return
+    Endif
+  Until Not (t Like "*method call time=* sender=* *destination* serial=* path=* interface=*")
+  
+  If Not (t Like " *string \"*\"*") Then 
+    Debug "Dropping messages"
+    Return
+  Endif
+  n = New SMy_Notification
+  
+  Try n.app_name = svalue(t)
+  Try n.replaces_id = svalue(saNotification[0])
+  Try n.app_icon = svalue(saNotification[1])
+  Try n.summary = svalue(saNotification[2])
+  Try n.body = svalue(saNotification[3])
+  'Try n.actions = saNotification[4]
+  If Error Then 
+    Debug "Dropping messages"
+    Return   
+  Endif
+  'n.hints = saNotification[
+  'n.expire_timeout = saNotification[
+  n.dDate = Now
+  Debug "New Notification"
+  aNotifications.add(n)
+  mytrayicon.picture = Picture["notify_unread.png"]
+End
+
+Public Function svalue(s As String) As String
+  ' anykeyword "anyvalue" -> anyvalue
+  ' anykeyword anyvalue -> anyvalue
+  Dim start As Integer
+  s = Trim(s)
+  start = InStr(s, " ")
+  s = Right(s, - start)
+  If Left(s) = "\"" Then s = Right(s, -1)
+  If Right(s) = "\"" Then s = Left(s, -1)
+  Return s
+End
+
+Public monitoring As Boolean = True
+
+Public Sub Notify_all()
+  Dim n As SMy_Notification
+  monitoring = False 'do not get your own messages
+  For Each n In aNotifications
+    notify(n, 0)
+  Next
+  Wait 0.1
+  monitoring = True
+  aNotifications.clear
+  mytrayicon.picture = Picture["notify_read.png"]
+End
+
+
+Public Sub notify(n As SMy_Notification, wait_delay As Float)
+  Dim cmd As String = ""
+  Dim body As String
+  If wait_delay <> 0 Then monitoring = False
+  cmd = "notify-send"
+  cmd &= " --urgency=critical "
+  cmd &= " --expire-time=0 "
+  cmd &= " --app-name=" & sq(n.app_name)
+  cmd &= " --icon=" & sq(n.app_icon)
+  cmd &= " " & sq(n.summary)
+  body = n.body 
+  body &= "<br><br> At: " & n.dDate
+  cmd &= " " & sq(body)
+  Shell cmd  
+  If wait_delay <> 0 Then 
+    Wait wait_delay
+    monitoring = True
+  Endif
+End
+
+Public Sub sq(s As String) As String
+  Return "'" & s & "'"
+End
+

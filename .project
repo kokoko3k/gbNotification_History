@@ -1,0 +1,16 @@
+# Gambas Project File 3.0
+# Compiled with Gambas 3.9.1
+Title=gbNotificationHistory
+Startup=StartClass
+Version=0.0.1
+Component=gb.image
+Component=gb.gui.qt
+Component=gb.form
+Component=gb.dbus
+Component=gb.gui.trayicon
+TabSize=2
+Translate=1
+Language=en_US
+ControlPublic=1
+ModulePublic=1
+Packager=1
