@@ -28,7 +28,7 @@ Compiling it:
 After you installed gambas 3, just checkout and compile xt7 that way:
 
 # git clone https://github.com/kokoko3k/gbNotification_History
-# cd xt7-player-mpv/
+# cd gbNotification_History/
 # /path/to/gambas/binaries/gbc3 -e -a -g -t -p -m
 # /path/to/gambas/binaries/gba3
 # ./*.gambas
