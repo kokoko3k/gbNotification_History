@@ -95,6 +95,7 @@ End
 Public Sub Parse_and_store(saNotification As String[])
   Dim t As String 
   Dim n As SMy_Notification
+  Dim i As Integer
   'find the beginning of the notification
   Repeat
     Try t = saNotification.Extract(0, 1)[0]
@@ -121,7 +122,17 @@ Public Sub Parse_and_store(saNotification As String[])
     Return   
   Endif
   'n.hints = saNotification[
-  'n.expire_timeout = saNotification[
+  'search for expire timeout value, it has to be "int32"
+  For i = 4 To saNotification.Max
+    If saNotification[i] Like "* int32 *" Then
+      n.expire_timeout = svalue(saNotification[i])
+      If n.expire_timeout = 0 Then 
+        Debug "Not going to store persistent notifications"
+      Endif
+    Endif
+  Next
+  
+  
   n.dDate = Now
   Debug "New Notification"
   aNotifications.add(n)
@@ -179,3 +190,9 @@ Public Sub sq(s As String) As String
   Return "'" & s & "'"
 End
 
+
+Public Sub Form_Open()
+
+  
+
+End

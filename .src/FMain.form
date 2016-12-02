@@ -2,6 +2,7 @@
 
 { Form Form
   MoveScaled(0,0,54,46)
+  Visible = False
   { TrayMenu Menu
     Text = ("TrayMenu")
   }
